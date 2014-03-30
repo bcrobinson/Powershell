@@ -109,3 +109,50 @@ function Find-InFiles
 }
 
 Set-Alias -Name pGrep -Value Find-InFiles;
+
+function purl
+{
+    [CmdletBinding()]
+    param
+    (
+        [Parameter(Position=0, Mandatory=$True)]
+        [string] $Url
+    )    
+
+    $res = Invoke-WebRequest -Uri $Url -Method Get
+    
+    Write-Output $res.Content;
+}
+
+function Add-Acl
+{
+    [CmdletBinding()]
+    Param
+    (
+        [Parameter(Mandatory=$true, ValueFromPipeline=$true, ValueFromPipelineByPropertyName=$true, Position=0)]
+        [string] $Path,
+        
+        [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true, Position=1)]
+        [string] $Identity,
+        
+        [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true, Position=2)]
+        [System.Security.AccessControl.FileSystemRights] $Permission,
+        
+        [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true, Position=3)]
+        [System.Security.AccessControl.AccessControlType] $AccessType = [System.Security.AccessControl.AccessControlType]::Allow
+    )
+
+    Begin
+    {
+        $newAcl = New-Object System.Security.AccessControl.FileSystemAccessRule @($Identity, $Permission, $AccessType);
+        Write-Verbose "New Acl for $identity. $AccessType $Permission";
+    }
+    Process
+    {
+        Write-Verbose "Add Acl to $path";
+        $current = Get-Acl -Path $Path;
+        $current.AddAccessRule($newAcl);
+
+        Set-Acl -Path $Path -AclObject $current;
+    }
+}
